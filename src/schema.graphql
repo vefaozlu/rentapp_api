@@ -1,0 +1,83 @@
+type Query {
+    info: String!
+    user: User!
+    getRenter(id: Int): Renter!
+    getLandlord(id: Int): Landlord!
+    getProperty(id: Int): Property!
+    getAnnouncements(id: Int): [Announcement!]!
+}
+
+type Mutation {
+    signup(email: String!, password: String!, name: String!): AuthPayload!
+    login(email: String!, password: String!): AuthPayload!
+    createRenter(name: String!, email: String, address: String!, phoneNumber: String!): Renter!
+    createLandlord(name: String!, email: String, address: String!, phoneNumber: String!): Landlord!
+    createProperty(name: String, address: String!, payPeriod: Int!, rentAmount: Int!, deposit: Int!, unit: String): Property!
+    createAnnouncement(title: String!, body: String!, propertyId: Int!): Announcement!
+    updateUser(userId: Int!, email: String, password: String, name: String): User!
+    updateRenter(renterId: Int!, name: String, email: String, address: String, phoneNumber: String): Renter!
+    updateLandlord(landlordId: Int!, name: String, email: String, address: String, phoneNumber: String): Landlord!
+    updateProperty(propertyId: Int!, name: String, address: String!, payPeriod: Int!, rentAmount: Int!, deposit: Int!, unit: String): Property!
+    updateAnnouncement(announcementId: Int!, title: String!, body: String!, propertyId: Int!): Announcement!
+    deleteUser(userId: Int!): Boolean!
+    deleteRenter(renterId: Int!): Boolean!
+    deleteLandlord(landlordId: Int!): Boolean!
+    deleteProperty(propertyId: Int!): Boolean!
+    deleteAnnouncement(announcementId: Int!): Boolean!
+}
+
+type AuthPayload {
+  token: String
+  user: User
+}
+
+type User {
+    id: ID!
+    email: String!
+    name: String!
+    firebaseId: String!
+    renterProfile: Renter
+    landlordProfile: Landlord
+}
+
+type Renter {
+    id: ID!
+    name: String!
+    email: String
+    address: String
+    phoneNumber: String!
+    propertiesRented: [Property!]!
+}
+
+type Landlord {
+    id: ID!
+    name: String!
+    email: String
+    address: String
+    phoneNumber: String!
+    properties: [Property]!
+}
+
+type Property {
+    id: ID!
+    name: String
+    address: String!
+    payPeriod: Int!
+    rentAmount: Int!
+    deposit: Int!
+    unit: String
+    isVacant: Boolean!
+    announcements: [Announcement]!
+    landlord: Landlord!
+    renter: Renter
+}
+
+type Announcement {
+    id: ID!
+    title: String!
+    body: String!
+    property: Property!
+    date: Date!
+}
+
+scalar Date
