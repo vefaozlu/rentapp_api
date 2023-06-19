@@ -1,14 +1,15 @@
-import { PrismaClient, User } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { Request } from "express";
 import { Auth } from "firebase/auth";
+import { auth } from "../firebase/firebase";
 import { authenticateUser } from "./auth";
-import {auth} from "../firebase/firebase";
+import { Session } from "./model/Session";
 
 const prisma = new PrismaClient();
 
 export type GraphQLContext = {
   prisma: PrismaClient;
-  currentUser: User | null;
+  session: Session;
   auth: Auth;
 };
 
@@ -17,7 +18,7 @@ export async function contextFactory(
 ): Promise<GraphQLContext> {
   return {
     prisma,
-    currentUser: await authenticateUser(prisma, request),
+    session: await authenticateUser(prisma, request),
     auth,
   };
 }
