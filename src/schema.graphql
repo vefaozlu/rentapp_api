@@ -1,25 +1,76 @@
 type Query {
-    info: String!
-    user: User!
+  info: String!
+  user: User!
+  profile: ProfilePayload!
 }
 
 type Mutation {
-    signup(email: String!, password: String!, name: String!, role: Role!): AuthPayload!
-    login(email: String!, password: String!, role: Role!): AuthPayload!
-    createRenter(name: String!, email: String, address: String!, phoneNumber: String!): Renter!
-    createLandlord(name: String!, email: String, address: String!, phoneNumber: String!): Landlord!
-    createProperty(name: String, address: String!, payPeriod: Int!, rentAmount: Int!, deposit: Int!, unit: String): Property!
-    createAnnouncement(title: String!, body: String!, propertyId: Int!): Announcement!
-    updateUser(id: Int!, email: String, password: String, name: String): User!
-    updateRenter(id: Int!, name: String, email: String, address: String, phoneNumber: String): Renter!
-    updateLandlord(id: Int!, name: String, email: String, address: String, phoneNumber: String): Landlord!
-    updateProperty(id: Int!, name: String, address: String, payPeriod: Int, rentAmount: Int, deposit: Int, isVacant: Boolean, unit: String, renterId: Int, landlordId: Int): Property!
-    updateAnnouncement(id: Int!, title: String, body: String): Announcement!
-    deleteUser(id: Int!): Boolean!
-    deleteRenter(id: Int!): Boolean!
-    deleteLandlord(id: Int!): Boolean!
-    deleteProperty(id: Int!): Boolean!
-    deleteAnnouncement(id: Int!): Boolean!
+  signup(
+    email: String!
+    password: String!
+    name: String!
+    role: Role!
+  ): AuthPayload!
+  login(email: String!, password: String!, role: Role!): AuthPayload!
+  createTenant(
+    name: String!
+    email: String
+    address: String!
+    phoneNumber: String!
+  ): Tenant!
+  createLandlord(
+    name: String!
+    email: String
+    address: String!
+    phoneNumber: String!
+  ): Landlord!
+  createProperty(name: String!, address: String!): Property!
+  createUnit(
+    name: String!
+    payPeriod: Int!
+    rentAmount: Int!
+    deposit: Int!
+    propertyId: Int!
+    tenantId: Int
+  ): Unit!
+  createAnnouncement(
+    title: String!
+    body: String!
+    propertyId: Int!
+  ): Announcement!
+  updateUser(id: Int!, email: String, password: String, name: String): User!
+  updateTenant(
+    id: Int!
+    name: String
+    email: String
+    address: String
+    phoneNumber: String
+  ): Tenant!
+  updateLandlord(
+    id: Int!
+    name: String
+    email: String
+    address: String
+    phoneNumber: String
+  ): Landlord!
+  updateProperty(id: Int!, name: String, address: String): Property!
+  updateUnit(
+    id: Int!
+    name: String
+    payPeriod: Int
+    rentAmount: Int
+    deposit: Int
+    isVacant: Boolean
+  ): Unit!
+  updateAnnouncement(id: Int!, title: String, body: String): Announcement!
+  deleteUser(id: Int!): Boolean!
+  deleteTenant(id: Int!): Boolean!
+  deleteLandlord(id: Int!): Boolean!
+  deleteProperty(id: Int!): Boolean!
+  deleteUnit(id: Int!): Boolean!
+  deleteAnnouncement(id: Int!): Boolean!
+  registerTenantToUnit(tenantId: Int!, unitId: Int!): Unit!
+  removeTenantFromUnit(tenantId: Int!, unitId: Int!): Unit!
 }
 
 type AuthPayload {
@@ -27,59 +78,72 @@ type AuthPayload {
   user: User
 }
 
-type User {
-    id: ID!
-    email: String!
-    name: String!
-    firebaseId: String!
-    renterProfile: Renter
-    landlordProfile: Landlord
+type ProfilePayload {
+  user: User!
+  tenant: Tenant
+  landlord: Landlord
+  currentRole: Role!
 }
 
-type Renter {
-    id: ID!
-    name: String!
-    email: String
-    address: String
-    phoneNumber: String!
-    propertiesRented: [Property!]!
+type User {
+  id: ID!
+  email: String!
+  username: String!
+  firebaseId: String!
+  tenantProfile: Tenant
+  landlordProfile: Landlord
+}
+
+type Tenant {
+  id: ID!
+  name: String!
+  email: String
+  address: String
+  phoneNumber: String!
+  unitRented: Unit
 }
 
 type Landlord {
-    id: ID!
-    name: String!
-    email: String
-    address: String
-    phoneNumber: String!
-    properties: [Property]!
+  id: ID!
+  name: String!
+  email: String
+  address: String
+  phoneNumber: String!
+  properties: [Property]!
 }
 
 type Property {
-    id: ID!
-    name: String
-    address: String!
-    payPeriod: Int!
-    rentAmount: Int!
-    deposit: Int!
-    unit: String
-    isVacant: Boolean!
-    announcements: [Announcement]!
-    landlord: Landlord!
-    renter: Renter
+  id: ID!
+  name: String
+  address: String!
+  units: [Unit]!
+  announcements: [Announcement]!
+  landlord: Landlord!
+}
+
+type Unit {
+  id: ID!
+  name: String!
+  payPeriod: Int!
+  rentAmount: Int!
+  deposit: Int!
+  isVacant: Boolean
+  property: Property!
+  tenant: Tenant
 }
 
 type Announcement {
-    id: ID!
-    title: String!
-    body: String!
-    property: Property!
-    date: Date!
+  id: ID!
+  title: String!
+  body: String!
+  property: Property!
+  date: Date!
 }
 
 enum Role {
-    RENTER
-    LANDLORD
-    ADMIN
+  TENANT
+  LANDLORD
+  ADMIN
 }
 
 scalar Date

@@ -6,7 +6,7 @@ export type Session = {
 };
 
 export enum Role {
-  RENTER,
+  TENANT,
   LANDLORD,
   ADMIN,
 }

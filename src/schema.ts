@@ -10,11 +10,12 @@ import typeDefs from "./schema.graphql";
 import { Role } from "./model/Session";
 import {
   User,
-  Renter,
+  Tenant,
   Landlord,
   Property,
   Announcement,
   Prisma,
+  Unit,
 } from "@prisma/client";
 require("dotenv").config();
 
@@ -27,6 +28,42 @@ const resolvers = {
       }
 
       return context.session.user;
+    },
+
+    profile: (parent: unknown, args: {}, context: GraphQLContext) => {
+      if (context.session.user === null) {
+        throw new Error("Unauthenticated");
+      }
+
+      if (context.session.currentRole === Role.TENANT) {
+        const tenant = context.prisma.tenant.findUnique({
+          where: { userId: context.session.user.id },
+        });
+
+        const user = context.session.user;
+        const role = context.session.currentRole;
+
+        return {
+          user,
+          tenant,
+          role,
+        };
+      }
+
+      if (context.session.currentRole === Role.LANDLORD) {
+        const landlord = context.prisma.landlord.findUnique({
+          where: { userId: context.session.user.id },
+        });
+
+        const user = context.session.user;
+        const role = context.session.currentRole;
+
+        return {
+          user,
+          landlord,
+          role,
+        };
+      }
     },
   },
 
@@ -51,7 +88,11 @@ const resolvers = {
         });
 
       const user = await context.prisma.user.create({
-        data: { email: args.email, name: args.name, firebaseId: firebaseId },
+        data: {
+          email: args.email,
+          username: args.name,
+          firebaseId: firebaseId,
+        },
       });
 
       const token = sign(
@@ -89,12 +130,12 @@ const resolvers = {
       }
 
       switch (role) {
-        case "RENTER":
-          const renter = await context.prisma.renter.findUnique({
+        case "TENANT":
+          const tenant = await context.prisma.tenant.findUnique({
             where: { userId: user.id },
           });
-          if (renter === null) {
-            throw new Error("Renter profile not found.");
+          if (tenant === null) {
+            throw new Error("Tenant profile not found.");
           }
           break;
         case "LANDLORD":
@@ -121,7 +162,7 @@ const resolvers = {
       };
     },
 
-    createRenter: async (
+    createTenant: async (
       parent: unknown,
       args: {
         name: string;
@@ -138,7 +179,7 @@ const resolvers = {
         throw new Error("Unauthenticated");
       }
 
-      const renter = await context.prisma.renter.create({
+      const tenant = await context.prisma.tenant.create({
         data: {
           ...args,
           user: {
@@ -147,7 +188,7 @@ const resolvers = {
         },
       });
 
-      return renter;
+      return tenant;
     },
 
     createLandlord: async (
@@ -184,10 +225,6 @@ const resolvers = {
       args: {
         name: string;
         address: string;
-        payPeriod: number;
-        rentAmount: number;
-        deposit: number;
-        unit: string;
       },
       context: GraphQLContext
     ) => {
@@ -212,6 +249,47 @@ const resolvers = {
       });
 
       return property;
+    },
+
+    createUnit: async (
+      parent: unknown,
+      args: {
+        name: string;
+        payPeriod: number;
+        rentAmount: number;
+        deposit: number;
+        propertyId: number;
+        tenantId: number;
+      },
+      context: GraphQLContext
+    ) => {
+      if (
+        context.session.user === null ||
+        context.session.currentRole !== Role.LANDLORD
+      ) {
+        throw new Error("Unauthenticated");
+      }
+
+      const unit = await context.prisma.unit.create({
+        data: {
+          name: args.name,
+          payPeriod: args.payPeriod,
+          rentAmount: args.rentAmount,
+          deposit: args.deposit,
+          isVacant: false,
+          property: {
+            connect: { id: args.propertyId },
+          },
+          tenant:
+            args.tenantId === null
+              ? undefined
+              : {
+                  connect: { id: args.tenantId },
+                },
+        },
+      });
+
+      return unit;
     },
 
     createAnnouncement: async (
@@ -239,7 +317,7 @@ const resolvers = {
       return announcement;
     },
 
-    updateRenter: async (
+    updateTenant: async (
       parent: unknown,
       args: {
         id: number;
@@ -252,12 +330,12 @@ const resolvers = {
     ) => {
       if (
         context.session.user === null ||
-        context.session.currentRole !== Role.RENTER
+        context.session.currentRole !== Role.TENANT
       ) {
         throw new Error("Unauthenticated");
       }
 
-      const renter = await context.prisma.renter.update({
+      const tenant = await context.prisma.tenant.update({
         where: { id: args.id },
         data: {
           name: args.name,
@@ -267,7 +345,7 @@ const resolvers = {
         },
       });
 
-      return renter;
+      return tenant;
     },
 
     updateLandlord: async (
@@ -307,13 +385,6 @@ const resolvers = {
         id: number;
         name: string;
         address: string;
-        payPeriod: number;
-        rentAmount: number;
-        deposit: number;
-        unit: string;
-        isVacant: boolean;
-        renterId: number;
-        landlordId: number;
       },
       context: GraphQLContext
     ) => {
@@ -329,21 +400,113 @@ const resolvers = {
         data: {
           name: args.name,
           address: args.address,
-          payPeriod: args.payPeriod,
-          rentAmount: args.rentAmount,
-          deposit: args.deposit,
-          unit: args.unit,
-          isVacant: args.isVacant,
-          renter: {
-            connect: { id: args.renterId },
-          },
-          landlord: {
-            connect: { id: args.landlordId },
-          },
         },
       });
 
       return property;
+    },
+
+    updateUnit: async (
+      parent: unknown,
+      args: {
+        id: number;
+        name: string;
+        payPeriod: number;
+        rentAmount: number;
+        deposit: number;
+      },
+      context: GraphQLContext
+    ) => {
+      if (
+        context.session.user === null ||
+        context.session.currentRole !== Role.LANDLORD
+      ) {
+        throw new Error("Unauthenticated");
+      }
+
+      const unit = await context.prisma.unit.update({
+        where: { id: args.id },
+        data: {
+          name: args.name,
+          payPeriod: args.payPeriod,
+          rentAmount: args.rentAmount,
+          deposit: args.deposit,
+        },
+      });
+
+      return unit;
+    },
+
+    registerTenantToUnit: async (
+      parent: unknown,
+      args: { unitId: number; tenantId: number },
+      context: GraphQLContext
+    ) => {
+      if (
+        context.session.user === null ||
+        context.session.currentRole !== Role.LANDLORD
+      ) {
+        throw new Error("Unauthenticated");
+      }
+
+      const unit = await context.prisma.unit.findUnique({
+        where: { id: args.unitId },
+      });
+
+      if (unit === null) {
+        throw new Error("Unit does not exist");
+      }
+
+      if (unit.tenantId !== null) {
+        throw new Error("Unit is already occupied");
+      }
+
+      const updatedUnit = await context.prisma.unit.update({
+        where: { id: args.unitId },
+        data: {
+          tenant: {
+            connect: { id: args.tenantId },
+          },
+        },
+      });
+
+      return updatedUnit;
+    },
+
+    removeTenantFromUnit: async (
+      parent: unknown,
+      args: { unitId: number; tenantId: number },
+      context: GraphQLContext
+    ) => {
+      if (
+        context.session.user === null ||
+        context.session.currentRole !== Role.LANDLORD
+      ) {
+        throw new Error("Unauthenticated");
+      }
+
+      const unit = await context.prisma.unit.findUnique({
+        where: { id: args.unitId },
+      });
+
+      if (unit === null) {
+        throw new Error("Unit does not exist");
+      }
+
+      if (unit.tenantId === null) {
+        throw new Error("Unit is already vacant");
+      }
+
+      const updatedUnit = await context.prisma.unit.update({
+        where: { id: args.unitId },
+        data: {
+          tenant: {
+            disconnect: true,
+          },
+        },
+      });
+
+      return updatedUnit;
     },
 
     updateAnnouncement: async (
@@ -369,19 +532,19 @@ const resolvers = {
       return announcement;
     },
 
-    deleteRenter: async (
+    deleteTenant: async (
       parent: unknown,
       args: { id: number },
       context: GraphQLContext
     ) => {
       if (
         context.session.user === null ||
-        context.session.currentRole !== Role.RENTER
+        context.session.currentRole !== Role.LANDLORD
       ) {
         throw new Error("Unauthenticated");
       }
 
-      const renter = await context.prisma.renter.delete({
+      const tenant = await context.prisma.tenant.delete({
         where: { id: args.id },
       });
 
@@ -426,6 +589,25 @@ const resolvers = {
       return true;
     },
 
+    deleteUnit: async (
+      parent: unknown,
+      args: { id: number },
+      context: GraphQLContext
+    ) => {
+      if (
+        context.session.user === null ||
+        context.session.currentRole !== Role.LANDLORD
+      ) {
+        throw new Error("Unauthenticated");
+      }
+
+      const unit = await context.prisma.unit.delete({
+        where: { id: args.id },
+      });
+
+      return true;
+    },
+
     deleteAnnouncement: async (
       parent: unknown,
       args: { id: number },
@@ -449,10 +631,10 @@ const resolvers = {
   User: {
     id: (parent: User) => parent.id,
     email: (parent: User) => parent.email,
-    name: (parent: User) => parent.name,
+    username: (parent: User) => parent.username,
     firebaseId: (parent: User) => parent.firebaseId,
-    renterProfile: (parent: User, args: {}, context: GraphQLContext) => {
-      return context.prisma.renter.findUnique({
+    tenantProfile: (parent: User, args: {}, context: GraphQLContext) => {
+      return context.prisma.tenant.findUnique({
         where: { userId: parent.id },
       });
     },
@@ -463,15 +645,15 @@ const resolvers = {
     },
   },
 
-  Renter: {
-    id: (parent: Renter) => parent.id,
-    name: (parent: Renter) => parent.name,
-    email: (parent: Renter) => parent.email,
-    address: (parent: Renter) => parent.address,
-    phoneNumber: (parent: Renter) => parent.phoneNumber,
-    propertiesRented: (parent: Renter, args: {}, context: GraphQLContext) => {
-      return context.prisma.property.findMany({
-        where: { renterId: parent.id },
+  Tenant: {
+    id: (parent: Tenant) => parent.id,
+    name: (parent: Tenant) => parent.name,
+    email: (parent: Tenant) => parent.email,
+    address: (parent: Tenant) => parent.address,
+    phoneNumber: (parent: Tenant) => parent.phoneNumber,
+    unitRented: (parent: Tenant, args: {}, context: GraphQLContext) => {
+      return context.prisma.unit.findUnique({
+        where: { tenantId: parent.id },
       });
     },
   },
@@ -493,11 +675,11 @@ const resolvers = {
     id: (parent: Property) => parent.id,
     name: (parent: Property) => parent.name,
     address: (parent: Property) => parent.address,
-    payPeriod: (parent: Property) => parent.payPeriod,
-    rentAmount: (parent: Property) => parent.rentAmount,
-    deposit: (parent: Property) => parent.deposit,
-    unit: (parent: Property) => parent.unit,
-    isVacant: (parent: Property) => parent.isVacant,
+    units: (parent: Property, args: {}, context: GraphQLContext) => {
+      return context.prisma.unit.findMany({
+        where: { propertyId: parent.id },
+      });
+    },
     announcements: (parent: Property, args: {}, context: GraphQLContext) => {
       return context.prisma.announcement.findMany({
         where: { propertyId: parent.id },
@@ -508,12 +690,25 @@ const resolvers = {
         where: { id: parent.landlordId },
       });
     },
-    renter: (parent: Property, args: {}, context: GraphQLContext) => {
-      if (parent.isVacant) {
-        return null;
-      }
-      return context.prisma.renter.findUnique({
-        where: { id: parent.renterId! },
+  },
+
+  Unit: {
+    id: (parent: Unit) => parent.id,
+    name: (parent: Unit) => parent.name,
+    payPeriod: (parent: Unit) => parent.payPeriod,
+    rentAmount: (parent: Unit) => parent.rentAmount,
+    deposit: (parent: Unit) => parent.deposit,
+    isVacant: (parent: Unit) => parent.isVacant,
+    property: (parent: Unit, args: {}, context: GraphQLContext) => {
+      return context.prisma.property.findUnique({
+        where: { id: parent.id },
+      });
+    },
+    tenant: async (parent: Unit, args: {}, context: GraphQLContext) => {
+      if (!parent.tenantId) return null;
+
+      return await context.prisma.tenant.findUnique({
+        where: { id: parent.tenantId },
       });
     },
   },

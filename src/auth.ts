@@ -11,7 +11,7 @@ export async function authenticateUser(
   if (request.headers.authorization) {
     try {
       const token = request.headers.authorization.split(" ")[1];
-      
+
       const tokenPayload = verify(
         token,
         process.env.TOKEN_SECRET!
@@ -33,7 +33,7 @@ export async function authenticateUser(
 }
 
 function extractRole(role: string): Role {
-  if (role === "RENTER") return Role.RENTER;
+  if (role === "TENANT") return Role.TENANT;
   if (role === "LANDLORD") return Role.LANDLORD;
   return Role.ADMIN;
 }
