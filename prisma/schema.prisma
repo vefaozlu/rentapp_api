@@ -26,6 +26,7 @@ model Tenant {
   address     String  @db.VarChar(128)
   phoneNumber String  @unique @db.VarChar(15)
   unitRented  Unit?
+  balanceId   String  @unique @db.VarChar(24)
   user        User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      Int?    @unique
 }
