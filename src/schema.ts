@@ -179,9 +179,12 @@ const resolvers = {
         throw new Error("Unauthenticated");
       }
 
+      const userBalance = await context.balance.createBalance();
+
       const tenant = await context.prisma.tenant.create({
         data: {
           ...args,
+          balanceId: userBalance.id,
           user: {
             connect: { id: context.session.user.id },
           },
@@ -439,7 +442,7 @@ const resolvers = {
 
     registerTenantToUnit: async (
       parent: unknown,
-      args: { unitId: number; tenantId: number },
+      args: { unitId: number; tenantId: number; initialBalance: number },
       context: GraphQLContext
     ) => {
       if (
@@ -453,13 +456,27 @@ const resolvers = {
         where: { id: args.unitId },
       });
 
-      if (unit === null) {
-        throw new Error("Unit does not exist");
+      const tenant = await context.prisma.tenant.findUnique({
+        where: { id: args.tenantId },
+      });
+
+      if (!unit || !tenant) {
+        throw new Error("Unit or tenant does not exist");
       }
 
       if (unit.tenantId !== null) {
         throw new Error("Unit is already occupied");
       }
+
+      context.balance.updateBalance({
+        where: { id: tenant.balanceId },
+        data: {
+          balance: Number(args.initialBalance),
+          payPeriod: unit.payPeriod,
+          rentAmount: Number(unit.rentAmount),
+          shouldCalculateEndDate: true,
+        },
+      });
 
       const updatedUnit = await context.prisma.unit.update({
         where: { id: args.unitId },
@@ -489,13 +506,27 @@ const resolvers = {
         where: { id: args.unitId },
       });
 
-      if (unit === null) {
-        throw new Error("Unit does not exist");
+      const tenant = await context.prisma.tenant.findUnique({
+        where: { id: args.tenantId },
+      });
+
+      if (!unit || !tenant) {
+        throw new Error("Unit or tenant does not exist");
       }
 
       if (unit.tenantId === null) {
         throw new Error("Unit is already vacant");
       }
+
+      await context.balance.updateBalance({
+        where: { id: tenant.balanceId },
+        data: {
+          balance: 0,
+          payPeriod: 0,
+          rentAmount: 0,
+          shouldCalculateEndDate: false,
+        },
+      });
 
       const updatedUnit = await context.prisma.unit.update({
         where: { id: args.unitId },
@@ -532,6 +563,31 @@ const resolvers = {
       return announcement;
     },
 
+    updateBalance: async (
+      parent: unknown,
+      args: { id: number; amount: number },
+      context: GraphQLContext
+    ) => {
+      if (context.session.user === null) {
+        throw new Error("Unauthenticated");
+      }
+
+      const tenant = await context.prisma.tenant.findUnique({
+        where: { id: args.id },
+      });
+
+      if (!tenant) {
+        throw new Error("Tenant does not exist");
+      }
+
+      const balance = await context.balance.updateBalanceAmount({
+        where: { id: tenant.balanceId },
+        data: { amount: args.amount },
+      });
+
+      return balance;
+    },
+
     deleteTenant: async (
       parent: unknown,
       args: { id: number },
@@ -547,6 +603,8 @@ const resolvers = {
       const tenant = await context.prisma.tenant.delete({
         where: { id: args.id },
       });
+
+      await context.balance.deleteBalance(tenant.balanceId);
 
       return true;
     },

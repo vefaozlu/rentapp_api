@@ -5,26 +5,43 @@ type Query {
 }
 
 type Mutation {
+  # To register a user.
+
   signup(
     email: String!
     password: String!
     name: String!
     role: Role!
   ): AuthPayload!
+
+  # To login a user (email is required).
+
   login(email: String!, password: String!, role: Role!): AuthPayload!
+
+  # To create tenant profile. Only landlord role can create tenant profiles.
+
   createTenant(
     name: String!
     email: String
     address: String!
     phoneNumber: String!
   ): Tenant!
+
+  # To create landlord profile. Only landlord role can create landlord profiles.
+
   createLandlord(
     name: String!
     email: String
     address: String!
     phoneNumber: String!
   ): Landlord!
+
+  # To create a property. Only landlord role can create properties.
+
   createProperty(name: String!, address: String!): Property!
+
+  # To create a unit. Only landlord role can create units.
+
   createUnit(
     name: String!
     payPeriod: Int!
@@ -33,12 +50,21 @@ type Mutation {
     propertyId: Int!
     tenantId: Int
   ): Unit!
+
+  # To create an announcement. Only landlord role can create announcements.
+
   createAnnouncement(
     title: String!
     body: String!
     propertyId: Int!
   ): Announcement!
+
+  # To update a user.
+
   updateUser(id: Int!, email: String, password: String, name: String): User!
+
+  # To update a tenant profile. All roles can update tenant profiles.
+
   updateTenant(
     id: Int!
     name: String
@@ -46,6 +72,9 @@ type Mutation {
     address: String
     phoneNumber: String
   ): Tenant!
+
+  # To update a landlord profile. Only landlord role can update landlord profiles.
+
   updateLandlord(
     id: Int!
     name: String
@@ -53,7 +82,13 @@ type Mutation {
     address: String
     phoneNumber: String
   ): Landlord!
+
+  # To update a property. Only landlord role can update properties.
+
   updateProperty(id: Int!, name: String, address: String): Property!
+
+  # To update a unit. Only landlord role can update units.
+
   updateUnit(
     id: Int!
     name: String
@@ -62,15 +97,57 @@ type Mutation {
     deposit: Int
     isVacant: Boolean
   ): Unit!
+
+  # To update an announcement. Only landlord role can update announcements.
+
   updateAnnouncement(id: Int!, title: String, body: String): Announcement!
+
+  # To delete a user.
+
   deleteUser(id: Int!): Boolean!
+
+  # To delete a tenant profile. Only landlord role can delete tenant profiles.
+
   deleteTenant(id: Int!): Boolean!
+
+  # To delete a landlord profile. Only landlord role can delete landlord profiles.
+
   deleteLandlord(id: Int!): Boolean!
+
+  # To delete a property. Only landlord role can delete properties.
+
   deleteProperty(id: Int!): Boolean!
+
+  # To delete a unit. Only landlord role can delete units.
+
   deleteUnit(id: Int!): Boolean!
+
+  # To delete an announcement. Only landlord role can delete announcements.
+
   deleteAnnouncement(id: Int!): Boolean!
-  registerTenantToUnit(tenantId: Int!, unitId: Int!): Unit!
+
+  # To register a tenant to a unit.
+  # When a tenant registered to a unit balance object will be updated automaticly.
+  # Only landlord role can register tenants to units.
+
+  registerTenantToUnit(
+    tenantId: Int!
+    unitId: Int!
+    initialBalance: Int!
+  ): Unit!
+
+  # To remove a tenant from a unit.
+  # When a tenant removed from a unit balance object will be updated automaticly.
+  # Only landlord role can register tenants to units.
+
   removeTenantFromUnit(tenantId: Int!, unitId: Int!): Unit!
+
+  # To update balance amount.
+  # Amount will be incremented or decremented from current balance.
+  # Landlord can update balance by hand.
+  # This can be used for payments also.
+
+  updateBalance(id: Int!, amount: Int!): Balance!
 }
 
 type AuthPayload {
@@ -100,6 +177,7 @@ type Tenant {
   email: String
   address: String
   phoneNumber: String!
+  balanceId: String!
   unitRented: Unit
 }
 
