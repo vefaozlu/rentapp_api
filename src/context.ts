@@ -4,16 +4,15 @@ import { Auth } from "firebase/auth";
 import { auth } from "../firebase/firebase";
 import { authenticateUser } from "./auth";
 import { Session } from "./model/Session";
-import BalanceClient from "../mongodb/balance";
+import { pubSub } from "./pubsub";
 
 const prisma = new PrismaClient();
-const balance = new BalanceClient();
 
 export type GraphQLContext = {
   prisma: PrismaClient;
   session: Session;
   auth: Auth;
-  balance: BalanceClient;
+  pubSub: typeof pubSub;
 };
 
 export async function contextFactory(
@@ -23,6 +22,6 @@ export async function contextFactory(
     prisma,
     session: await authenticateUser(prisma, request),
     auth,
-    balance,
+    pubSub,
   };
 }
