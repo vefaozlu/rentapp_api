@@ -1,26 +1,19 @@
 import { makeExecutableSchema } from "@graphql-tools/schema";
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-} from "firebase/auth";
 import "graphql-import-node";
-import { sign } from "jsonwebtoken";
-import { GraphQLContext } from "./context";
 import typeDefs from "./schema.graphql";
-import { Role } from "./model/Session";
-import {
-  User,
-  Tenant,
-  Landlord,
-  Property,
-  Announcement,
-  Prisma,
-  Unit,
-} from "@prisma/client";
 require("dotenv").config();
+import {
+  AnnouncementSchema,
+  BalanceSchema,
+  LandlordSchema,
+  PropertySchema,
+  TenantSchema,
+  UnitSchema,
+  UserSchema,
+} from "./graphql/index";
 
-const resolvers = {
-  Query: {
+/* const resolvers = {
+   Query: {
     info: () => `This is the API of RentApp`,
     user: (parent: unknown, args: {}, context: GraphQLContext) => {
       if (context.session.user === null) {
@@ -65,9 +58,22 @@ const resolvers = {
         };
       }
     },
-  },
-
-  Mutation: {
+  }, */
+/*   Subscription: {
+    balance: {
+      subscribe: withFilter(
+        (parent: unknown, args: {}, context: GraphQLContext) =>
+          context.pubSub.asyncIterator("BALANCE"),
+        (payload: PubSubChannels["BALANCE"][0], variables) => {
+          return payload.tenantId === variables.userId;
+        }
+      ),
+      resolve: (payload: PubSubChannels["BALANCE"][0]) => {
+        return payload.balance;
+      },
+    },
+  }, */
+/*Mutation: {
     signup: async (
       parent: unknown,
       args: { email: string; password: string; name: string; role: string },
@@ -160,9 +166,8 @@ const resolvers = {
         token,
         user,
       };
-    },
-
-    createTenant: async (
+    }, */
+/*     createTenant: async (
       parent: unknown,
       args: {
         name: string;
@@ -179,12 +184,9 @@ const resolvers = {
         throw new Error("Unauthenticated");
       }
 
-      const userBalance = await context.balance.createBalance();
-
       const tenant = await context.prisma.tenant.create({
         data: {
           ...args,
-          balanceId: userBalance.id,
           user: {
             connect: { id: context.session.user.id },
           },
@@ -192,9 +194,8 @@ const resolvers = {
       });
 
       return tenant;
-    },
-
-    createLandlord: async (
+    }, */
+/*     createLandlord: async (
       parent: unknown,
       args: {
         name: string;
@@ -221,9 +222,8 @@ const resolvers = {
       });
 
       return landlord;
-    },
-
-    createProperty: async (
+    }, */
+/*     createProperty: async (
       parent: unknown,
       args: {
         name: string;
@@ -252,9 +252,8 @@ const resolvers = {
       });
 
       return property;
-    },
-
-    createUnit: async (
+    }, */
+/*    createUnit: async (
       parent: unknown,
       args: {
         name: string;
@@ -293,9 +292,8 @@ const resolvers = {
       });
 
       return unit;
-    },
-
-    createAnnouncement: async (
+    }, */
+/*     createAnnouncement: async (
       parent: unknown,
       args: { title: string; body: string; propertyId: number },
       context: GraphQLContext
@@ -318,9 +316,8 @@ const resolvers = {
       });
 
       return announcement;
-    },
-
-    updateTenant: async (
+    }, */
+/*     updateTenant: async (
       parent: unknown,
       args: {
         id: number;
@@ -349,9 +346,8 @@ const resolvers = {
       });
 
       return tenant;
-    },
-
-    updateLandlord: async (
+    }, */
+/*     updateLandlord: async (
       parent: unknown,
       args: {
         id: number;
@@ -380,9 +376,8 @@ const resolvers = {
       });
 
       return landlord;
-    },
-
-    updateProperty: async (
+    }, */
+/*     updateProperty: async (
       parent: unknown,
       args: {
         id: number;
@@ -407,9 +402,8 @@ const resolvers = {
       });
 
       return property;
-    },
-
-    updateUnit: async (
+    }, */
+/*     updateUnit: async (
       parent: unknown,
       args: {
         id: number;
@@ -438,11 +432,10 @@ const resolvers = {
       });
 
       return unit;
-    },
-
-    registerTenantToUnit: async (
+    }, */
+/*     registerTenantToUnit: async (
       parent: unknown,
-      args: { unitId: number; tenantId: number; initialBalance: number },
+      args: { unitId: number; tenantId: number },
       context: GraphQLContext
     ) => {
       if (
@@ -467,16 +460,6 @@ const resolvers = {
       if (unit.tenantId !== null) {
         throw new Error("Unit is already occupied");
       }
-
-      context.balance.updateBalance({
-        where: { id: tenant.balanceId },
-        data: {
-          balance: Number(args.initialBalance),
-          payPeriod: unit.payPeriod,
-          rentAmount: Number(unit.rentAmount),
-          shouldCalculateEndDate: true,
-        },
-      });
 
       const updatedUnit = await context.prisma.unit.update({
         where: { id: args.unitId },
@@ -518,16 +501,6 @@ const resolvers = {
         throw new Error("Unit is already vacant");
       }
 
-      await context.balance.updateBalance({
-        where: { id: tenant.balanceId },
-        data: {
-          balance: 0,
-          payPeriod: 0,
-          rentAmount: 0,
-          shouldCalculateEndDate: false,
-        },
-      });
-
       const updatedUnit = await context.prisma.unit.update({
         where: { id: args.unitId },
         data: {
@@ -538,9 +511,8 @@ const resolvers = {
       });
 
       return updatedUnit;
-    },
-
-    updateAnnouncement: async (
+    }, */
+/*     updateAnnouncement: async (
       parent: unknown,
       args: { id: number; title: string; body: string },
       context: GraphQLContext
@@ -561,34 +533,8 @@ const resolvers = {
       });
 
       return announcement;
-    },
-
-    updateBalance: async (
-      parent: unknown,
-      args: { id: number; amount: number },
-      context: GraphQLContext
-    ) => {
-      if (context.session.user === null) {
-        throw new Error("Unauthenticated");
-      }
-
-      const tenant = await context.prisma.tenant.findUnique({
-        where: { id: args.id },
-      });
-
-      if (!tenant) {
-        throw new Error("Tenant does not exist");
-      }
-
-      const balance = await context.balance.updateBalanceAmount({
-        where: { id: tenant.balanceId },
-        data: { amount: args.amount },
-      });
-
-      return balance;
-    },
-
-    deleteTenant: async (
+    }, */
+/*     deleteTenant: async (
       parent: unknown,
       args: { id: number },
       context: GraphQLContext
@@ -604,12 +550,9 @@ const resolvers = {
         where: { id: args.id },
       });
 
-      await context.balance.deleteBalance(tenant.balanceId);
-
       return true;
-    },
-
-    deleteLandlord: async (
+    }, */
+/*     deleteLandlord: async (
       parent: unknown,
       args: { id: number },
       context: GraphQLContext
@@ -626,9 +569,8 @@ const resolvers = {
       });
 
       return true;
-    },
-
-    deleteProperty: async (
+    }, */
+/*     deleteProperty: async (
       parent: unknown,
       args: { id: number },
       context: GraphQLContext
@@ -645,8 +587,8 @@ const resolvers = {
       });
 
       return true;
-    },
-
+    }, */
+/* 
     deleteUnit: async (
       parent: unknown,
       args: { id: number },
@@ -664,9 +606,8 @@ const resolvers = {
       });
 
       return true;
-    },
-
-    deleteAnnouncement: async (
+    }, */
+/*     deleteAnnouncement: async (
       parent: unknown,
       args: { id: number },
       context: GraphQLContext
@@ -683,10 +624,35 @@ const resolvers = {
       });
 
       return true;
-    },
-  },
+    }, */
+/*     updateBalance: async (
+      parent: unknown,
+      args: { id: number; balance: number },
+      context: GraphQLContext
+    ) => {
+      if (
+        context.session.user === null ||
+        context.session.currentRole !== Role.LANDLORD
+      ) {
+        throw new Error("Unauthenticated");
+      }
 
-  User: {
+      const balance = await context.prisma.balance.update({
+        where: { id: args.id },
+        data: {
+          balance: args.balance,
+        },
+      });
+
+      context.pubSub.publish("BALANCE", {
+        tenantId: balance.tenantId,
+        balance: balance,
+      });
+
+      return balance;
+    },
+  },*/
+/*   User: {
     id: (parent: User) => parent.id,
     email: (parent: User) => parent.email,
     username: (parent: User) => parent.username,
@@ -701,9 +667,8 @@ const resolvers = {
         where: { userId: parent.id },
       });
     },
-  },
-
-  Tenant: {
+  }, */
+/*   Tenant: {
     id: (parent: Tenant) => parent.id,
     name: (parent: Tenant) => parent.name,
     email: (parent: Tenant) => parent.email,
@@ -714,9 +679,8 @@ const resolvers = {
         where: { tenantId: parent.id },
       });
     },
-  },
-
-  Landlord: {
+  }, */
+/*   Landlord: {
     id: (parent: Landlord) => parent.id,
     name: (parent: Landlord) => parent.name,
     email: (parent: Landlord) => parent.email,
@@ -727,9 +691,8 @@ const resolvers = {
         where: { landlordId: parent.id },
       });
     },
-  },
-
-  Property: {
+  }, */
+/*   Property: {
     id: (parent: Property) => parent.id,
     name: (parent: Property) => parent.name,
     address: (parent: Property) => parent.address,
@@ -749,8 +712,8 @@ const resolvers = {
       });
     },
   },
-
-  Unit: {
+ */
+/*   Unit: {
     id: (parent: Unit) => parent.id,
     name: (parent: Unit) => parent.name,
     payPeriod: (parent: Unit) => parent.payPeriod,
@@ -769,9 +732,8 @@ const resolvers = {
         where: { id: parent.tenantId },
       });
     },
-  },
-
-  Announcement: {
+  }, */
+/*   Announcement: {
     id: (parent: Announcement) => parent.id,
     title: (parent: Announcement) => parent.title,
     body: (parent: Announcement) => parent.body,
@@ -781,10 +743,31 @@ const resolvers = {
       });
     },
     date: (parent: Announcement) => parent.date,
+  }, */
+/*   Balance: {
+    id: (parent: Balance) => parent.id,
+    balance: (parent: Balance) => parent.balance,
+    payPeriod: (parent: Balance) => parent.payPeriod,
+    currentPeriodEnd: (parent: Balance) => parent.currentPeriodEnd,
+    tenant: (parent: Balance, args: {}, context: GraphQLContext) => {
+      return context.prisma.balance
+        .findUnique({
+          where: { id: parent.id },
+        })
+        .tenant();
+    },
   },
-};
+}; */
 
 export const schema = makeExecutableSchema({
   typeDefs,
-  resolvers,
+  resolvers: [
+    AnnouncementSchema,
+    BalanceSchema,
+    LandlordSchema,
+    PropertySchema,
+    TenantSchema,
+    UnitSchema,
+    UserSchema,
+  ],
 });

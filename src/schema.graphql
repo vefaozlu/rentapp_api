@@ -102,6 +102,10 @@ type Mutation {
 
   updateAnnouncement(id: Int!, title: String, body: String): Announcement!
 
+  # To update a balance. Only landlord role can update balances.
+
+  updateBalance(id: Int!, balance: Int!): Balance!
+
   # To delete a user.
 
   deleteUser(id: Int!): Boolean!
@@ -130,24 +134,17 @@ type Mutation {
   # When a tenant registered to a unit balance object will be updated automaticly.
   # Only landlord role can register tenants to units.
 
-  registerTenantToUnit(
-    tenantId: Int!
-    unitId: Int!
-    initialBalance: Int!
-  ): Unit!
+  registerTenantToUnit(tenantId: Int!, unitId: Int!): Unit!
 
   # To remove a tenant from a unit.
   # When a tenant removed from a unit balance object will be updated automaticly.
   # Only landlord role can register tenants to units.
 
   removeTenantFromUnit(tenantId: Int!, unitId: Int!): Unit!
+}
 
-  # To update balance amount.
-  # Amount will be incremented or decremented from current balance.
-  # Landlord can update balance by hand.
-  # This can be used for payments also.
-
-  updateBalance(id: Int!, amount: Int!): Balance!
+type Subscription {
+  balance(userId: Int!): Balance
 }
 
 type AuthPayload {
@@ -177,7 +174,6 @@ type Tenant {
   email: String
   address: String
   phoneNumber: String!
-  balanceId: String!
   unitRented: Unit
 }
 
@@ -216,6 +212,14 @@ type Announcement {
   body: String!
   property: Property!
   date: Date!
+}
+
+type Balance {
+  id: ID!
+  balance: Int!
+  payPeriod: Int!
+  currentPeriodEnd: Date!
+  tenant: Tenant!
 }
 
 enum Role {
