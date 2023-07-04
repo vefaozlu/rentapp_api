@@ -9,17 +9,16 @@ import {
 } from "graphql-helix";
 import { contextFactory } from "./context";
 import { schema } from "./schema";
-import mongoose from "mongoose";
+
+import schedule from "node-schedule";
 
 async function main() {
   const app = express();
   app.use(express.json());
 
-  mongoose.connect(process.env.MONGODB_URI!);
-  const connection = mongoose.connection;
-  connection.once("open", () => {
-    console.log("MongoDB database connection established successfully");
-  });
+/*   const job = schedule.scheduleJob("* * * * *", () => {
+    console.log("Hello World!");
+  }); */
 
   app.use("/graphql", async (req, reply) => {
     const request: Request = {
