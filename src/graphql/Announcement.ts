@@ -28,17 +28,21 @@ export const AnnouncementSchema = {
         throw new Error("Unauthenticated");
       }
 
-      const announcement = await context.prisma.announcement.create({
-        data: {
-          title: args.title,
-          body: args.body,
-          property: {
-            connect: { id: args.propertyId },
+      try {
+        const announcement = await context.prisma.announcement.create({
+          data: {
+            title: args.title,
+            body: args.body,
+            property: {
+              connect: { id: args.propertyId },
+            },
           },
-        },
-      });
-
-      return announcement;
+        });
+        
+        return announcement;
+      } catch (error) {
+        throw new Error("Something went wrong");
+      }
     },
 
     updateAnnouncement: async (

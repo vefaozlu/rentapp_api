@@ -102,10 +102,10 @@ export const UserSchema = {
 
       const token = sign(
         { userId: user.id, role: args.role },
-        process.env.TOKEN_SECRET!,
-        {
+        process.env.TOKEN_SECRET!
+        /*         {
           expiresIn: "1d",
-        }
+        } */
       );
 
       return {
@@ -155,10 +155,10 @@ export const UserSchema = {
 
       const token = sign(
         { userId: user.id, role: args.role },
-        process.env.TOKEN_SECRET!,
-        {
+        process.env.TOKEN_SECRET!
+        /*         {
           expiresIn: "1d",
-        }
+        } */
       );
 
       return {

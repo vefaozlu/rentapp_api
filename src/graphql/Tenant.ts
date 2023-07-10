@@ -1,4 +1,4 @@
-import { Tenant } from "@prisma/client";
+import { Prisma, Tenant } from "@prisma/client";
 import { GraphQLContext } from "../context";
 import { Role } from "../model/Session";
 
@@ -34,16 +34,28 @@ export const TenantSchema = {
         throw new Error("Unauthenticated");
       }
 
-      const tenant = await context.prisma.tenant.create({
-        data: {
-          ...args,
-          user: {
-            connect: { id: context.session.user.id },
+      try {
+        const tenant = await context.prisma.tenant.create({
+          data: {
+            ...args,
+            user: {
+              connect: { id: context.session.user.id },
+            },
           },
-        },
-      });
+        });
 
-      return tenant;
+        return tenant;
+      } catch (e) {
+        if (e instanceof Prisma.PrismaClientKnownRequestError) {
+          if (e.code == "P2002") {
+            throw new Error(`Field ${e.meta!.target} is exists`);
+          }
+          /*           if (e.code === "P2000") {
+            throw new Error(`Field ${e.meta!.target} is too long`);
+          } */
+          throw new Error(e.message);
+        }
+      }
     },
 
     updateTenant: async (
