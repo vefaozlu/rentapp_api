@@ -9,25 +9,29 @@ export async function authenticateUser(
   request: Request
 ): Promise<Session> {
   if (request.headers.authorization) {
-    try {
-      const token = request.headers.authorization.split(" ")[1];
+    //  1
 
-      const tokenPayload = verify(
-        token,
-        process.env.TOKEN_SECRET!
-      ) as JwtPayload;
+    const token = request.headers.authorization.split(" ")[1];
 
-      const userId = tokenPayload.userId;
-      const user = await prisma.user.findUnique({ where: { id: userId } });
-      const session: Session = {
-        user: user!,
-        currentRole: extractRole(tokenPayload.role) as Role,
-      };
-      return session;
-    } catch (error) {
-      throw new Error("Token expired or invalid");
-    }
+    //  2
+
+    const tokenPayload = verify(token, process.env.TOKEN_SECRET!) as JwtPayload;
+
+    //  3
+
+    const userId = tokenPayload.userId;
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+
+    //  4
+
+    const session: Session = {
+      user: user!,
+      currentRole: extractRole(tokenPayload.role) as Role,
+    };
+    return session;
   }
+
+  //  5
 
   return { user: null, currentRole: null };
 }
