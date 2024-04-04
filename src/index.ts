@@ -9,18 +9,20 @@ import {
 } from "graphql-helix";
 import { contextFactory } from "./context";
 import { schema } from "./schema";
+var cors = require("cors");
 
-import schedule from "node-schedule";
+var corsOptions = {
+  origin: true,
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
 
 async function main() {
   const app = express();
+  app.use(cors(corsOptions));
   app.use(express.json());
 
-/*   const job = schedule.scheduleJob("* * * * *", () => {
-    console.log("Hello World!");
-  }); */
-
-  app.use("/graphql", async (req, reply) => {
+  app.use("/rentapp/graphql", async (req, reply) => {
     const request: Request = {
       headers: req.headers,
       method: req.method,
@@ -32,7 +34,7 @@ async function main() {
       reply.header("Content-Type", "text/html");
       reply.send(
         renderGraphiQL({
-          endpoint: "/graphql",
+          endpoint: "/rentapp/graphql",
         })
       );
       return;
@@ -50,6 +52,10 @@ async function main() {
     });
 
     sendResult(result, reply);
+  });
+
+  app.route("/info").get((req, res) => {
+    res.send("Hello World!");
   });
 
   const port = process.env.PORT || 4000;

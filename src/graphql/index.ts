@@ -5,3 +5,4 @@ export * from "./Property";
 export * from "./Tenant";
 export * from "./Unit";
 export * from "./User";
+export * from "./Scalars";

@@ -1,12 +1,14 @@
 import { Balance } from "@prisma/client";
+import { GraphQLError } from "graphql";
+import { withFilter } from "graphql-subscriptions";
 import { GraphQLContext } from "../context";
 import { Role } from "../model/Session";
 import { PubSubChannels } from "../pubsub";
-import { withFilter } from "graphql-subscriptions";
 
 export const BalanceSchema = {
   Balance: {
     id: (parent: Balance) => parent.id,
+    isActive: (parent: Balance) => parent.isActive,
     balance: (parent: Balance) => parent.balance,
     payPeriod: (parent: Balance) => parent.payPeriod,
     currentPeriodEnd: (parent: Balance) => parent.currentPeriodEnd,
@@ -25,36 +27,61 @@ export const BalanceSchema = {
       args: { id: number; balance: number },
       context: GraphQLContext
     ) => {
+      //  1
+
       if (
         context.session.user === null ||
         context.session.currentRole !== Role.LANDLORD
       ) {
-        throw new Error("Unauthenticated");
+        throw new GraphQLError("Unauthenticated", {
+          extensions: { code: 401 },
+        });
       }
 
-      const balance = await context.prisma.balance.update({
-        where: { id: args.id },
-        data: {
-          balance: args.balance,
-        },
-      });
+      //  2
 
-      context.pubSub.publish("BALANCE", {
-        tenantId: balance.tenantId,
-        balance: balance,
-      });
+      try {
+        const balance = await context.prisma.balance.update({
+          where: { id: args.id },
+          data: {
+            balance: args.balance,
+          },
+        });
 
-      return balance;
+        //  Success
+
+        context.pubSub.publish("BALANCE", {
+          tenantId: balance.tenantId,
+          balance: balance,
+        });
+
+        return balance;
+      } catch (e) {
+        //  Failure
+
+        throw new Error("Something went wrong");
+      }
     },
   },
 
   Subscription: {
     balance: {
       subscribe: withFilter(
-        (parent: unknown, args: {}, context: GraphQLContext) =>
-          context.pubSub.asyncIterator("BALANCE"),
+        (parent: unknown, args: {}, context: GraphQLContext) => {
+          //  1
+
+          if (context.session.user === null) {
+            throw new GraphQLError("Unauthenticated", {
+              extensions: { code: 401 },
+            });
+          }
+
+          //  2
+
+          return context.pubSub.asyncIterator("BALANCE");
+        },
         (payload: PubSubChannels["BALANCE"][0], variables) => {
-          return payload.tenantId === variables.userId;
+          return payload.tenantId === variables.tenantId;
         }
       ),
       resolve: (payload: PubSubChannels["BALANCE"][0]) => {

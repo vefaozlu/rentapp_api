@@ -6,6 +6,7 @@ import {
 } from "firebase/auth";
 import { sign } from "jsonwebtoken";
 import { Role } from "../model/Session";
+import { GraphQLError } from "graphql";
 
 export const UserSchema = {
   User: {
@@ -36,39 +37,35 @@ export const UserSchema = {
     },
 
     profile: (parent: unknown, args: {}, context: GraphQLContext) => {
+      //  1
+
       if (context.session.user === null) {
-        throw new Error("Unauthenticated");
-      }
-
-      if (context.session.currentRole === Role.TENANT) {
-        const tenant = context.prisma.tenant.findUnique({
-          where: { userId: context.session.user.id },
+        throw new GraphQLError("Unauthenticated", {
+          extensions: { code: 401 },
         });
-
-        const user = context.session.user;
-        const role = context.session.currentRole;
-
-        return {
-          user,
-          tenant,
-          role,
-        };
       }
 
-      if (context.session.currentRole === Role.LANDLORD) {
-        const landlord = context.prisma.landlord.findUnique({
-          where: { userId: context.session.user.id },
-        });
+      //  2
 
-        const user = context.session.user;
-        const role = context.session.currentRole;
+      const profile =
+        context.session.currentRole === Role.LANDLORD
+          ? context.prisma.landlord.findUnique({
+              where: { userId: context.session.user.id },
+            })
+          : context.prisma.tenant.findUnique({
+              where: { userId: context.session.user.id },
+            });
 
-        return {
-          user,
-          landlord,
-          role,
-        };
-      }
+      const user = context.session.user;
+      const role = context.session.currentRole;
+
+      //  Success
+
+      return {
+        user,
+        profile,
+        role,
+      };
     },
   },
 
@@ -119,39 +116,58 @@ export const UserSchema = {
       args: { email: string; password: string; role: string },
       context: GraphQLContext
     ) => {
+      const role = args.role;
+
+      //  1
+
       await signInWithEmailAndPassword(context.auth, args.email, args.password)
         .then((userCredential) => {})
         .catch((error) => {
-          throw new Error(error);
+          if (error.code === "auth/wrong-password") {
+            throw new GraphQLError("Wrong password", {
+              extensions: { code: 401 },
+            });
+          }
+          if (error.code === "auth/wrong-email") {
+            throw new GraphQLError("Invalid email", {
+              extensions: { code: 401 },
+            });
+          }
+          if (error.code === "auth/user-not-found") {
+            throw new GraphQLError("User not found", {
+              extensions: { code: 404 },
+            });
+          }
         });
 
-      const role = args.role;
+      //  2
+
       const user = await context.prisma.user.findUnique({
         where: { email: args.email },
       });
 
       if (user === null) {
-        throw new Error("User not found.");
+        throw new GraphQLError("User not found", { extensions: { code: 404 } });
       }
 
-      switch (role) {
-        case "TENANT":
-          const tenant = await context.prisma.tenant.findUnique({
-            where: { userId: user.id },
-          });
-          if (tenant === null) {
-            throw new Error("Tenant profile not found.");
-          }
-          break;
-        case "LANDLORD":
-          const landlord = await context.prisma.landlord.findUnique({
-            where: { userId: user.id },
-          });
-          if (landlord === null) {
-            throw new Error("Landlord profile not found.");
-          }
-          break;
+      //  3
+
+      const profile =
+        role == "LANDLORD"
+          ? await context.prisma.landlord.findUnique({
+              where: { userId: user.id },
+            })
+          : await context.prisma.tenant.findUnique({
+              where: { userId: user.id },
+            });
+
+      //  4
+
+      if (!profile) {
+        throw new Error("Profile not found");
       }
+
+      //  5
 
       const token = sign(
         { userId: user.id, role: args.role },
@@ -161,10 +177,63 @@ export const UserSchema = {
         } */
       );
 
+      //  Succcess
+
       return {
         token,
         user,
       };
+    },
+
+    registerUserToTenantProfile: async (
+      parent: unknown,
+      args: {
+        email: string;
+        name: string;
+        phoneNumber: string;
+      },
+      context: GraphQLContext
+    ) => {
+      //  1
+
+      if (
+        context.session.user === null ||
+        context.session.currentRole !== Role.TENANT
+      ) {
+        throw new Error("Unauthenticated");
+      }
+
+      //  2
+
+      const tenant = await context.prisma.tenant.findFirst({
+        where: {
+          OR: [{ email: args.email }, { phoneNumber: args.phoneNumber }],
+          AND: { name: args.name },
+        },
+      });
+
+      if (tenant === null) {
+        throw new Error(
+          "Your records not found. Please contact your association owner."
+        );
+      }
+
+      //  3
+
+      await context.prisma.tenant.update({
+        where: { id: tenant.id },
+        data: {
+          user: {
+            connect: {
+              id: context.session.user.id,
+            },
+          },
+        },
+      });
+
+      //  Success
+
+      return tenant;
     },
   },
 };

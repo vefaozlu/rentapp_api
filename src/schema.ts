@@ -10,6 +10,7 @@ import {
   TenantSchema,
   UnitSchema,
   UserSchema,
+  Scalars,
 } from "./graphql/index";
 
 export const schema = makeExecutableSchema({
@@ -22,5 +23,6 @@ export const schema = makeExecutableSchema({
     TenantSchema,
     UnitSchema,
     UserSchema,
+    Scalars,
   ],
 });

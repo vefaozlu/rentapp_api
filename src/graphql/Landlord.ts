@@ -27,12 +27,16 @@ export const LandlordSchema = {
       },
       context: GraphQLContext
     ) => {
+      //  1
+
       if (
         context.session.user === null ||
         context.session.currentRole !== Role.LANDLORD
       ) {
         throw new Error("Unauthenticated");
       }
+
+      //  2
 
       const landlord = await context.prisma.landlord.create({
         data: {
@@ -42,6 +46,8 @@ export const LandlordSchema = {
           },
         },
       });
+
+      //  Success
 
       return landlord;
     },
@@ -57,12 +63,16 @@ export const LandlordSchema = {
       },
       context: GraphQLContext
     ) => {
+      //  1
+
       if (
         context.session.user === null ||
         context.session.currentRole !== Role.LANDLORD
       ) {
         throw new Error("Unauthenticated");
       }
+
+      //  2
 
       const landlord = await context.prisma.landlord.update({
         where: { id: args.id },
@@ -74,6 +84,8 @@ export const LandlordSchema = {
         },
       });
 
+      //  Success
+
       return landlord;
     },
 
@@ -82,6 +94,8 @@ export const LandlordSchema = {
       args: { id: number },
       context: GraphQLContext
     ) => {
+      //  1
+
       if (
         context.session.user === null ||
         context.session.currentRole !== Role.LANDLORD
@@ -89,9 +103,13 @@ export const LandlordSchema = {
         throw new Error("Unauthenticated");
       }
 
+      //  2
+
       const landlord = await context.prisma.landlord.delete({
         where: { id: args.id },
       });
+
+      //  Success
 
       return true;
     },

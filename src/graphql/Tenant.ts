@@ -14,6 +14,11 @@ export const TenantSchema = {
         where: { tenantId: parent.id },
       });
     },
+    balance: (parent: Tenant, args: {}, context: GraphQLContext) => {
+      return context.prisma.balance.findUnique({
+        where: { tenantId: parent.id },
+      });
+    }
   },
 
   Mutation: {
@@ -27,6 +32,8 @@ export const TenantSchema = {
       },
       context: GraphQLContext
     ) => {
+      //  1
+
       if (
         context.session.user === null ||
         context.session.currentRole !== Role.LANDLORD
@@ -34,28 +41,27 @@ export const TenantSchema = {
         throw new Error("Unauthenticated");
       }
 
-      try {
-        const tenant = await context.prisma.tenant.create({
-          data: {
-            ...args,
-            user: {
-              connect: { id: context.session.user.id },
-            },
-          },
-        });
+      //  2
 
-        return tenant;
-      } catch (e) {
-        if (e instanceof Prisma.PrismaClientKnownRequestError) {
-          if (e.code == "P2002") {
-            throw new Error(`Field ${e.meta!.target} is exists`);
-          }
-          /*           if (e.code === "P2000") {
-            throw new Error(`Field ${e.meta!.target} is too long`);
-          } */
-          throw new Error(e.message);
-        }
-      }
+      const tenant = await context.prisma.tenant.create({
+        data: {
+          ...args,
+        },
+      });
+
+      //  3
+
+      const balance = await context.prisma.balance.create({
+        data: {
+          tenant: {
+            connect: { id: tenant.id },
+          },
+        },
+      });
+
+      //  Success
+
+      return tenant;
     },
 
     updateTenant: async (
@@ -69,12 +75,16 @@ export const TenantSchema = {
       },
       context: GraphQLContext
     ) => {
+      //  1
+
       if (
         context.session.user === null ||
         context.session.currentRole !== Role.TENANT
       ) {
         throw new Error("Unauthenticated");
       }
+
+      //  2
 
       const tenant = await context.prisma.tenant.update({
         where: { id: args.id },
@@ -86,13 +96,18 @@ export const TenantSchema = {
         },
       });
 
+      //  Success
+
       return tenant;
     },
+
     deleteTenant: async (
       parent: unknown,
       args: { id: number },
       context: GraphQLContext
     ) => {
+      //  1
+
       if (
         context.session.user === null ||
         context.session.currentRole !== Role.LANDLORD
@@ -100,9 +115,13 @@ export const TenantSchema = {
         throw new Error("Unauthenticated");
       }
 
+      //  2
+
       const tenant = await context.prisma.tenant.delete({
         where: { id: args.id },
       });
+
+      //  Success
 
       return true;
     },

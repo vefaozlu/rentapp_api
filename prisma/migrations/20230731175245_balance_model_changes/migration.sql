@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Balance" ALTER COLUMN "currentPeriodEnd" SET DEFAULT CURRENT_TIMESTAMP;

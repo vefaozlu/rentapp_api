@@ -12,9 +12,6 @@ export async function authenticateUser(
     //  1
 
     const token = request.headers.authorization.split(" ")[1];
-
-    //  2
-
     const tokenPayload = verify(token, process.env.TOKEN_SECRET!) as JwtPayload;
 
     //  3

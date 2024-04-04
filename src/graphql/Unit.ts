@@ -37,12 +37,16 @@ export const UnitSchema = {
       },
       context: GraphQLContext
     ) => {
+      //  1
+
       if (
         context.session.user === null ||
         context.session.currentRole !== Role.LANDLORD
       ) {
         throw new Error("Unauthenticated");
       }
+
+      //  2
 
       const unit = await context.prisma.unit.create({
         data: {
@@ -63,6 +67,8 @@ export const UnitSchema = {
         },
       });
 
+      //  Success
+
       return unit;
     },
 
@@ -77,12 +83,16 @@ export const UnitSchema = {
       },
       context: GraphQLContext
     ) => {
+      //`  1
+
       if (
         context.session.user === null ||
         context.session.currentRole !== Role.LANDLORD
       ) {
         throw new Error("Unauthenticated");
       }
+
+      //  2
 
       const unit = await context.prisma.unit.update({
         where: { id: args.id },
@@ -94,6 +104,8 @@ export const UnitSchema = {
         },
       });
 
+      //  Success
+
       return unit;
     },
 
@@ -102,6 +114,8 @@ export const UnitSchema = {
       args: { unitId: number; tenantId: number },
       context: GraphQLContext
     ) => {
+      //  1
+
       if (
         context.session.user === null ||
         context.session.currentRole !== Role.LANDLORD
@@ -109,13 +123,19 @@ export const UnitSchema = {
         throw new Error("Unauthenticated");
       }
 
+      //  2
+
       const unit = await context.prisma.unit.findUnique({
         where: { id: args.unitId },
       });
 
+      //  3
+
       const tenant = await context.prisma.tenant.findUnique({
         where: { id: args.tenantId },
       });
+
+      //  4
 
       if (!unit || !tenant) {
         throw new Error("Unit or tenant does not exist");
@@ -124,6 +144,8 @@ export const UnitSchema = {
       if (unit.tenantId !== null) {
         throw new Error("Unit is already occupied");
       }
+
+      //  5
 
       const updatedUnit = await context.prisma.unit.update({
         where: { id: args.unitId },
@@ -134,6 +156,19 @@ export const UnitSchema = {
         },
       });
 
+      //  6
+
+      const balance = await context.prisma.balance.update({
+        where: { tenantId: args.tenantId },
+        data: {
+          isActive: true,
+          balance: updatedUnit.deposit,
+          currentPeriodEnd: new Date( )
+        },
+      });
+
+      //  Success
+
       return updatedUnit;
     },
 
@@ -142,6 +177,8 @@ export const UnitSchema = {
       args: { unitId: number; tenantId: number },
       context: GraphQLContext
     ) => {
+      //  1
+
       if (
         context.session.user === null ||
         context.session.currentRole !== Role.LANDLORD
@@ -149,13 +186,19 @@ export const UnitSchema = {
         throw new Error("Unauthenticated");
       }
 
+      //  2
+
       const unit = await context.prisma.unit.findUnique({
         where: { id: args.unitId },
       });
 
+      //  3
+
       const tenant = await context.prisma.tenant.findUnique({
         where: { id: args.tenantId },
       });
+
+      //  4
 
       if (!unit || !tenant) {
         throw new Error("Unit or tenant does not exist");
@@ -164,6 +207,8 @@ export const UnitSchema = {
       if (unit.tenantId === null) {
         throw new Error("Unit is already vacant");
       }
+
+      //  5
 
       const updatedUnit = await context.prisma.unit.update({
         where: { id: args.unitId },
@@ -174,6 +219,17 @@ export const UnitSchema = {
         },
       });
 
+      //  6
+
+      const balance = await context.prisma.balance.update({
+        where: { tenantId: args.tenantId },
+        data: {
+          isActive: false,
+        },
+      });
+
+      //  Success
+
       return updatedUnit;
     },
 
@@ -182,6 +238,8 @@ export const UnitSchema = {
       args: { id: number },
       context: GraphQLContext
     ) => {
+      //  1
+
       if (
         context.session.user === null ||
         context.session.currentRole !== Role.LANDLORD
@@ -189,9 +247,13 @@ export const UnitSchema = {
         throw new Error("Unauthenticated");
       }
 
+      //  2
+
       const unit = await context.prisma.unit.delete({
         where: { id: args.id },
       });
+
+      //  Success
 
       return true;
     },

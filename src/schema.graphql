@@ -8,42 +8,46 @@ type Mutation {
   # To register a user.
 
   signup(
-    email: String!
-    password: String!
-    name: String!
+    email: EmailString!
+    password: NonEmptyString!
+    name: NonEmptyString!
     role: Role!
   ): AuthPayload!
 
-  # To login a user (email is required).
+  # To login a user.
 
-  login(email: String!, password: String!, role: Role!): AuthPayload!
+  login(
+    email: EmailString!
+    password: NonEmptyString!
+    role: Role!
+  ): AuthPayload!
 
   # To create tenant profile. Only landlord role can create tenant profiles.
 
   createTenant(
-    name: String!
-    email: String
-    address: String!
-    phoneNumber: String!
+    name: NonEmptyString!
+    email: EmailString
+    address: NonEmptyString!
+    phoneNumber: NonEmptyString!
   ): Tenant!
 
   # To create landlord profile. Only landlord role can create landlord profiles.
 
   createLandlord(
-    name: String!
-    email: String
-    address: String!
-    phoneNumber: String!
+    name: NonEmptyString!
+    email: EmailString
+    address: NonEmptyString!
+    phoneNumber: NonEmptyString!
   ): Landlord!
 
   # To create a property. Only landlord role can create properties.
 
-  createProperty(name: String!, address: String!): Property!
+  createProperty(name: NonEmptyString!, address: NonEmptyString!): Property!
 
   # To create a unit. Only landlord role can create units.
 
   createUnit(
-    name: String!
+    name: NonEmptyString!
     payPeriod: Int!
     rentAmount: Int!
     deposit: Int!
@@ -54,33 +58,38 @@ type Mutation {
   # To create an announcement. Only landlord role can create announcements.
 
   createAnnouncement(
-    title: String!
-    body: String!
+    title: NonEmptyString!
+    body: String
     propertyId: Int!
   ): Announcement!
 
   # To update a user.
 
-  updateUser(id: Int!, email: String, password: String, name: String): User!
+  updateUser(
+    id: Int!
+    email: NonEmptyString
+    password: NonEmptyString
+    name: NonEmptyString
+  ): User!
 
   # To update a tenant profile. All roles can update tenant profiles.
 
   updateTenant(
     id: Int!
-    name: String
-    email: String
-    address: String
-    phoneNumber: String
+    name: NonEmptyString
+    email: NonEmptyString
+    address: NonEmptyString
+    phoneNumber: NonEmptyString
   ): Tenant!
 
   # To update a landlord profile. Only landlord role can update landlord profiles.
 
   updateLandlord(
     id: Int!
-    name: String
-    email: String
-    address: String
-    phoneNumber: String
+    name: NonEmptyString
+    email: NonEmptyString
+    address: NonEmptyString
+    phoneNumber: NonEmptyString
   ): Landlord!
 
   # To update a property. Only landlord role can update properties.
@@ -91,7 +100,7 @@ type Mutation {
 
   updateUnit(
     id: Int!
-    name: String
+    name: NonEmptyString
     payPeriod: Int
     rentAmount: Int
     deposit: Int
@@ -100,7 +109,11 @@ type Mutation {
 
   # To update an announcement. Only landlord role can update announcements.
 
-  updateAnnouncement(id: Int!, title: String, body: String): Announcement!
+  updateAnnouncement(
+    id: Int!
+    title: NonEmptyString
+    body: String
+  ): Announcement!
 
   # To update a balance. Only landlord role can update balances.
 
@@ -141,10 +154,16 @@ type Mutation {
   # Only landlord role can register tenants to units.
 
   removeTenantFromUnit(tenantId: Int!, unitId: Int!): Unit!
+
+  registerUserToTenantProfile(
+    email: EmailString!
+    name: NonEmptyString!
+    phoneNumber: NonEmptyString!
+  ): Tenant!
 }
 
 type Subscription {
-  balance(userId: Int!): Balance
+  balance(tenantId: Int!): Balance
 }
 
 type AuthPayload {
@@ -154,8 +173,7 @@ type AuthPayload {
 
 type ProfilePayload {
   user: User!
-  tenant: Tenant
-  landlord: Landlord
+  profile: Tenant
   currentRole: Role!
 }
 
@@ -175,6 +193,7 @@ type Tenant {
   address: String
   phoneNumber: String!
   unitRented: Unit
+  balance: Balance
 }
 
 type Landlord {
@@ -216,6 +235,7 @@ type Announcement {
 
 type Balance {
   id: ID!
+  isActive: Boolean!
   balance: Int!
   payPeriod: Int!
   currentPeriodEnd: Date!
@@ -227,5 +247,9 @@ enum Role {
   LANDLORD
   ADMIN
 }
+
+scalar NonEmptyString
+
+scalar EmailString
 
 scalar Date

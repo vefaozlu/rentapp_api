@@ -33,6 +33,8 @@ export const PropertySchema = {
       },
       context: GraphQLContext
     ) => {
+      //  1
+
       if (
         context.session.user === null ||
         context.session.currentRole !== Role.LANDLORD
@@ -40,9 +42,13 @@ export const PropertySchema = {
         throw new Error("Unauthenticated");
       }
 
+      //  2
+
       const landlord = await context.prisma.landlord.findUnique({
         where: { userId: context.session.user.id },
       });
+
+      //  3
 
       const property = await context.prisma.property.create({
         data: {
@@ -52,6 +58,8 @@ export const PropertySchema = {
           },
         },
       });
+
+      //  Success
 
       return property;
     },
@@ -65,12 +73,16 @@ export const PropertySchema = {
       },
       context: GraphQLContext
     ) => {
+      //  1
+
       if (
         context.session.user === null ||
         context.session.currentRole !== Role.LANDLORD
       ) {
         throw new Error("Unauthenticated");
       }
+
+      //  2
 
       const property = await context.prisma.property.update({
         where: { id: args.id },
@@ -80,6 +92,8 @@ export const PropertySchema = {
         },
       });
 
+      //  Success
+
       return property;
     },
 
@@ -88,6 +102,8 @@ export const PropertySchema = {
       args: { id: number },
       context: GraphQLContext
     ) => {
+      //  1
+
       if (
         context.session.user === null ||
         context.session.currentRole !== Role.LANDLORD
@@ -95,9 +111,13 @@ export const PropertySchema = {
         throw new Error("Unauthenticated");
       }
 
+      //  2
+
       const property = await context.prisma.property.delete({
         where: { id: args.id },
       });
+
+      //  Success
 
       return true;
     },
