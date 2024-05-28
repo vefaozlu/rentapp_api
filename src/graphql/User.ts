@@ -152,7 +152,7 @@ export const UserSchema = {
 
       //  3
 
-      const profile =
+/*       const profile =
         role == "LANDLORD"
           ? await context.prisma.landlord.findUnique({
               where: { userId: user.id },
@@ -165,7 +165,7 @@ export const UserSchema = {
 
       if (!profile) {
         throw new Error("Profile not found");
-      }
+      } */
 
       //  5
 
